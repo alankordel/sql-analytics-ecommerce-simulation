@@ -30,6 +30,45 @@ de Data Warehouse.
 
 Os dados são fictícios e destinados exclusivamente ao aprendizado.
 
+## Visão geral dos dados
+
+Os gráficos abaixo são baseados nos 374 pedidos disponíveis no projeto. As
+consultas usadas para análises mais detalhadas estão em
+`4_business_cases/01_sales_kpis.sql` e
+`4_business_cases/02_store_performance.sql`.
+
+### Receita mensal em 2019
+
+```mermaid
+xychart-beta
+    title "Receita mensal (R$)"
+    x-axis ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+    y-axis "Receita (R$)" 0 --> 70000
+    bar [65100, 10200, 18000, 10800, 16200, 16800, 12000, 18000, 14400, 8400, 21600, 17400]
+```
+
+### Participação da receita por loja
+
+```mermaid
+pie showData
+    title Receita total por loja
+    "Rio de Janeiro" : 30100
+    "Belo Horizonte" : 34400
+    "Salvador" : 27800
+    "Curitiba" : 28600
+    "Fortaleza" : 28800
+    "São Paulo" : 34300
+    "Niterói" : 17250
+    "Goiânia" : 27650
+```
+
+| Indicador | Resultado |
+|---|---:|
+| Receita total | R$ 228.900,00 |
+| Pedidos analisados | 374 |
+| Loja com maior receita | Belo Horizonte |
+| Mês com maior receita | Janeiro |
+
 ## Estrutura
 
 ```text
