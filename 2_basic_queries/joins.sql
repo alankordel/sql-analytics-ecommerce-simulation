@@ -27,13 +27,15 @@ GROUP BY pr.Nome_Produto;
 
 -- Receita e pedidos por cliente
 SELECT 
-    c.Nome,
+    c.ID_Cliente,
+    CONCAT(c.Nome, ' ', c.Sobrenome) AS Cliente,
     COUNT(p.ID_Pedido) AS Total_Pedidos,
     SUM(p.Receita_Venda) AS Receita_Total
 FROM pedidos p
 INNER JOIN clientes c 
     ON p.ID_Cliente = c.ID_Cliente
-GROUP BY c.Nome;
+GROUP BY c.ID_Cliente, c.Nome, c.Sobrenome
+ORDER BY Receita_Total DESC;
 
 
 

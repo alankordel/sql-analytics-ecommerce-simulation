@@ -16,11 +16,11 @@ WHERE Sexo = 'M';
 SELECT AVG(Renda_Anual) AS ' Media renda anual'
 FROM clientes;
 
--- Menor preço dos produtos
+-- Menor preço registrado nos pedidos
 SELECT MIN(Preco_Unit) AS 'Preço minimo' 
 from pedidos;
--- Maior preço dos produtos
-SELECT MAX(Preco_Unit) AS 'Preço minimo' 
+-- Maior preço registrado nos pedidos
+SELECT MAX(Preco_Unit) AS 'Preço máximo'
 from pedidos;
 
 -- GROUP BY Agrupando por quantidade de produto por marca
