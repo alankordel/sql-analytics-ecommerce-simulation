@@ -1,21 +1,25 @@
 # SQL Analytics Project – E-commerce Simulation
 
+[![Validação SQL](https://github.com/alankordel/sql-analytics-ecommerce-simulation/actions/workflows/sql-validation.yml/badge.svg)](https://github.com/alankordel/sql-analytics-ecommerce-simulation/actions/workflows/sql-validation.yml)
+
 Projeto educacional de SQL e Data Analytics baseado em um banco fictício de
 e-commerce. O objetivo é demonstrar, de forma progressiva, modelagem
-relacional, consultas analíticas, solução de problemas de negócio e fundamentos
-de Data Warehouse.
+relacional, consultas analíticas, solução de problemas de negócio, fundamentos
+de Data Warehouse e validação automatizada.
 
 > Educational SQL and Data Analytics project based on a fictional e-commerce
-> database. It progressively demonstrates relational modeling, analytical
-> queries, business problem solving and Data Warehouse fundamentals.
+> database, with a reproducible MySQL 8 environment and automated data-quality
+> validation.
 
 ## Tecnologias
 
-- MySQL 8.0+
+- MySQL 8.0
+- Docker e Docker Compose
 - SQL
 - Modelo relacional
 - Modelagem dimensional (Star Schema)
 - ETL com stored procedure
+- GitHub Actions
 
 ## Dados
 
@@ -32,10 +36,8 @@ Os dados são fictícios e destinados exclusivamente ao aprendizado.
 
 ## Visão geral dos dados
 
-Os gráficos abaixo são baseados nos 374 pedidos disponíveis no projeto. As
-consultas usadas para análises mais detalhadas estão em
-`4_business_cases/01_sales_kpis.sql` e
-`4_business_cases/02_store_performance.sql`.
+Os gráficos são baseados nos 374 pedidos disponíveis. As consultas detalhadas
+estão em `4_business_cases/`.
 
 ### Receita mensal em 2019
 
@@ -69,60 +71,138 @@ pie showData
 | Loja com maior receita | Belo Horizonte |
 | Mês com maior receita | Janeiro |
 
-## Estrutura
+## Pipeline do projeto
 
-```text
-.
-├── 1_schema/
-│   ├── 01_create_database.sql
-│   └── 02_apply_constraints.sql
-├── 2_basic_queries/
-│   ├── select_basics.sql
-│   ├── joins.sql
-│   └── group_by.sql
-├── 3_intermediate_queries/
-│   ├── cte.sql
-│   ├── subqueries.sql
-│   └── window_functions.sql
-├── 4_business_cases/
-│   ├── 01_sales_kpis.sql
-│   ├── 02_store_performance.sql
-│   ├── 03_product_analysis.sql
-│   └── 04_customer_analysis.sql
-├── 5_data_engineering_simulation/
-│   ├── 01_star_schema.sql
-│   ├── 02_etl_load.sql
-│   └── 03_dw_analytics.sql
-├── database/                  # Dumps com os dados brutos
-├── docs/
-│   ├── data_model.md
-│   └── expected_results.md
-├── tests/
-│   └── validation.sql
-└── install.sql
+```mermaid
+flowchart LR
+    A["Dumps SQL"] --> B["Modelo operacional"]
+    B --> C["Constraints e índices"]
+    C --> D["ETL"]
+    D --> E["Star Schema"]
+    E --> F["Validações e análises"]
 ```
 
-## Instalação
+O `install.sql` recria o banco, importa os dumps sem modificá-los, aplica a
+modelagem relacional, cria o Star Schema e executa a carga inicial. Em seguida,
+`tests/validation.sql` verifica regras de qualidade, integridade, reconciliação
+e idempotência.
 
-Pré-requisito: MySQL 8.0 ou superior.
+> **Atenção:** `install.sql` executa `DROP DATABASE` e recria completamente o
+> banco `ecommerce_analytics`. Use-o somente no ambiente de desenvolvimento.
 
-Na raiz do projeto, execute:
+## Modelo operacional e Star Schema
+
+O modelo operacional preserva clientes, produtos, lojas, localidades,
+categorias e pedidos em tabelas normalizadas. Ele representa as entidades e os
+relacionamentos da operação.
+
+O Star Schema reorganiza os mesmos dados para análise: `fato_vendas` concentra
+as medidas e se relaciona com `dim_data`, `dim_cliente`, `dim_produto` e
+`dim_loja`. Como `ID_Pedido` é único na fonte, o grão da fato é **uma linha por
+pedido ou transação**, e não uma linha por item de pedido.
+
+O ETL atual atualiza as dimensões e realiza **full refresh** da tabela fato:
+remove todas as linhas de `fato_vendas` e recarrega os pedidos. O processo é
+transacional, auditado e testado para ser idempotente.
+
+Consulte [docs/data_model.md](docs/data_model.md) para os diagramas completos.
+
+## Requisitos
+
+Para o caminho recomendado:
+
+- Docker Desktop no Windows ou Docker Engine no Linux;
+- Docker Compose v2 (`docker compose`);
+- Git.
+
+Para a instalação manual alternativa:
+
+- MySQL Server e cliente MySQL 8.0+;
+- terminal aberto na raiz do repositório.
+
+## Execução com Docker no Windows PowerShell
+
+### 1. Preparar as variáveis locais
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Edite `.env` e defina senhas exclusivas para seu ambiente. Esse arquivo é
+ignorado pelo Git.
+
+### 2. Subir o banco e aguardar o healthcheck
+
+```powershell
+docker compose up -d --wait mysql
+docker compose ps
+```
+
+### 3. Instalar o projeto
+
+```powershell
+.\scripts\install.ps1
+```
+
+### 4. Executar as validações
+
+```powershell
+.\scripts\validate.ps1
+```
+
+### 5. Remover o ambiente
+
+```powershell
+docker compose down
+```
+
+Para também apagar o volume e recriar o banco do zero na próxima execução:
+
+```powershell
+docker compose down --volumes
+```
+
+## Execução com Docker no Bash/Linux
+
+```bash
+cp .env.example .env
+# Edite .env antes de continuar.
+
+docker compose up -d --wait mysql
+docker compose ps
+docker compose exec -T mysql bash /workspace/scripts/install.sh
+docker compose exec -T mysql bash /workspace/scripts/validate.sh
+docker compose down
+```
+
+Para remover também os dados persistidos:
+
+```bash
+docker compose down --volumes
+```
+
+## Instalação manual
+
+Com MySQL 8 em execução, abra o terminal na raiz do repositório:
 
 ```bash
 mysql -u root -p < install.sql
+mysql -u root -p < tests/validation.sql
 ```
 
-O instalador:
-
-1. recria o banco `ecommerce_analytics`;
-2. importa os dados brutos;
-3. aplica tipos adequados, chaves, restrições e índices;
-4. cria o modelo estrela;
-5. executa a carga inicial do Data Warehouse.
-
-> Atenção: `install.sql` remove e recria o banco `ecommerce_analytics`.
+Os comandos precisam ser executados na raiz porque `install.sql` utiliza
+diretivas `SOURCE` com caminhos relativos.
 
 ## Executando as análises
+
+Com Docker:
+
+```bash
+docker compose exec -T mysql bash -c \
+  'cd /workspace && mysql -uroot -p"$MYSQL_ROOT_PASSWORD" ecommerce_analytics < 4_business_cases/01_sales_kpis.sql'
+```
+
+Com cliente MySQL local:
 
 ```bash
 mysql -u root -p ecommerce_analytics < 2_basic_queries/select_basics.sql
@@ -131,38 +211,75 @@ mysql -u root -p ecommerce_analytics < 4_business_cases/01_sales_kpis.sql
 mysql -u root -p ecommerce_analytics < 5_data_engineering_simulation/03_dw_analytics.sql
 ```
 
-## Validação
+## Validações automatizadas
 
-Após a instalação:
+A suíte verifica:
 
-```bash
-mysql -u root -p < tests/validation.sql
+- volumes esperados e integridade referencial;
+- fórmulas de receita e custo;
+- valores não negativos, quantidade positiva e período de venda;
+- chaves naturais únicas nas dimensões;
+- correspondência entre fato e dimensões;
+- ausência de pedidos duplicados na fato;
+- reconciliação de receita e custo entre origem e Data Warehouse;
+- status da última execução do ETL;
+- idempotência após duas execuções consecutivas do ETL.
+
+O workflow `.github/workflows/sql-validation.yml` executa automaticamente em
+pushes para `evolucao/ambiente-reproduzivel`, Pull Requests destinados à
+`main` e acionamentos manuais.
+
+## Estrutura
+
+```text
+.
+├── .github/workflows/sql-validation.yml
+├── 1_schema/
+├── 2_basic_queries/
+├── 3_intermediate_queries/
+├── 4_business_cases/
+├── 5_data_engineering_simulation/
+├── database/                         # Dumps brutos preservados
+├── docs/
+├── scripts/
+│   ├── install.ps1
+│   ├── install.sh
+│   ├── validate.ps1
+│   └── validate.sh
+├── tests/validation.sql
+├── .env.example
+├── docker-compose.yml
+└── install.sql
 ```
 
-O teste verifica volumes, integridade referencial, consistência financeira,
-carga do modelo dimensional e reconciliação entre origem e Data Warehouse.
+## Limitações conhecidas
+
+- A base contém somente 374 pedidos, sendo adequada para demonstração, mas não
+  para testes de escala.
+- As vendas apresentam forte concentração em um único produto.
+- Existem poucas variações na quantidade vendida por pedido.
+- Os dados estão restritos ao ano de 2019.
+- A tabela fato utiliza full refresh em cada execução do ETL.
+- Ainda não existe estratégia de carga incremental ou histórico de alterações
+  nas dimensões.
+- Os dados são fictícios e possuem finalidade exclusivamente educacional.
+
+O modelo atual também assume uma transação por `ID_Pedido`. Suporte a múltiplos
+itens por pedido exigiria uma nova chave para a linha do pedido e está fora do
+escopo desta evolução.
 
 ## Habilidades demonstradas
 
-- `SELECT`, `WHERE`, `ORDER BY` e `LIMIT`
-- `INNER JOIN` e `LEFT JOIN`
-- `GROUP BY`, funções de agregação e `HAVING`
-- subconsultas e CTEs
-- `RANK`, `DENSE_RANK`, `LAG` e médias móveis
-- KPIs de receita, custo, lucro, margem e ticket médio
-- análise de lojas, produtos, categorias e clientes
-- tipos de dados, PKs, FKs, constraints e índices
-- modelagem dimensional com dimensões e tabela fato
-- ETL transacional, idempotência e auditoria
-- reconciliação e testes de qualidade de dados
-
-## Modelo de dados
-
-Consulte [docs/data_model.md](docs/data_model.md) para os diagramas do modelo
-relacional e do Data Warehouse.
+- consultas SQL básicas, intermediárias e analíticas;
+- modelagem relacional e dimensional;
+- KPIs de vendas, lojas, produtos e clientes;
+- ETL transacional, idempotência e auditoria;
+- testes de qualidade e reconciliação;
+- ambiente reproduzível com Docker;
+- integração contínua com GitHub Actions.
 
 ## Autor
 
-Alan Kordel  
-Computer Engineering Student | Data & BI Focus  
-Estudante de Engenharia da Computação | Foco em Dados e BI
+Alan Kordel<br>
+Computer Engineer | Data & BI Focus<br>
+Engenheiro da Computação | Foco em Dados e BI

@@ -16,6 +16,7 @@ After running `install.sql`, the following invariants are expected:
 | Source/fact revenue difference | 0.00 |
 | Source/fact cost difference | 0.00 |
 | Last ETL status | `SUCESSO` |
+| Result after two consecutive ETL runs | Unchanged totals and 374 unique orders |
 
 Business-query values should be treated as derived results. They are
 intentionally calculated by SQL rather than duplicated as static numbers in
