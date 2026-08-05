@@ -1,6 +1,6 @@
 -- =====================================================
 -- DATA WAREHOUSE SIMULATION - STAR SCHEMA
--- Grain: one row per order line (pedido)
+-- Grain: one row per order or transaction (ID_Pedido is unique)
 -- =====================================================
 
 USE ecommerce_analytics;
