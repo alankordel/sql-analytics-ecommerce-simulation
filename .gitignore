@@ -1,0 +1,14 @@
+# Credenciais e configuração local
+.env
+.env.*
+!.env.example
+
+# Arquivos gerados pelo sistema e editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs e arquivos temporários
+*.log
+tmp/
