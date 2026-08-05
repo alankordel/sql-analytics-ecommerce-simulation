@@ -1,0 +1,72 @@
+name: Validação SQL
+
+on:
+  push:
+    branches:
+      - evolucao/ambiente-reproduzivel
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validar-sql:
+    name: Instalar e validar MySQL 8
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: senha_temporaria_ci
+          MYSQL_DATABASE: ecommerce_analytics
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -psenha_temporaria_ci --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+          --health-start-period=20s
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar cliente MySQL
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes mysql-client
+
+      - name: Confirmar disponibilidade do MySQL
+        env:
+          MYSQL_PWD: senha_temporaria_ci
+        run: |
+          for tentativa in {1..30}; do
+            if mysqladmin ping --host=127.0.0.1 --port=3306 --user=root --silent; then
+              mysql --host=127.0.0.1 --port=3306 --user=root \
+                --execute="SELECT VERSION() AS versao_mysql;"
+              exit 0
+            fi
+            echo "Aguardando MySQL (${tentativa}/30)..."
+            sleep 2
+          done
+          echo "MySQL não ficou disponível no tempo esperado." >&2
+          exit 1
+
+      - name: Instalar projeto do zero
+        env:
+          PROJECT_DIR: ${{ github.workspace }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          MYSQL_ROOT_PASSWORD: senha_temporaria_ci
+        run: bash scripts/install.sh
+
+      - name: Executar validações SQL
+        env:
+          PROJECT_DIR: ${{ github.workspace }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          MYSQL_ROOT_PASSWORD: senha_temporaria_ci
+        run: bash scripts/validate.sh
